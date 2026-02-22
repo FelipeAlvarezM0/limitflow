@@ -50,7 +50,7 @@ flowchart LR
     Store --> PG[(PostgreSQL optional)]
     API --> Algorithms[Algorithm Registry]
     Algorithms --> Redis[(Redis + Lua)]
-    API --> Metrics[/metrics Prometheus]
+    API --> Metrics["/metrics (Prometheus)"]
     API --> Logs[Pino Logs]
     API --> Traces[OpenTelemetry Traces]
 ```
