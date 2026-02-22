@@ -38,6 +38,40 @@ Decision flow for `POST /v1/ratelimit/check`:
 3. Execute algorithm in Redis Lua atomically.
 4. Build response (`allowed`, `remaining`, `resetSeconds`, `retryAfterSeconds`) and rate limit headers.
 
+## Visual documentation
+
+### Component diagram
+
+```mermaid
+flowchart LR
+    Client[Client API / Gateway] --> API[LimitFlow Fastify API]
+    API --> Resolver[Policy Resolver + Cache TTL]
+    Resolver --> Store[(Policy Store)]
+    Store --> PG[(PostgreSQL optional)]
+    API --> Algorithms[Algorithm Registry]
+    Algorithms --> Redis[(Redis + Lua)]
+    API --> Metrics[/metrics Prometheus]
+    API --> Logs[Pino Logs]
+    API --> Traces[OpenTelemetry Traces]
+```
+
+### Request decision flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as LimitFlow API
+    participant R as Policy Resolver
+    participant D as Redis Lua
+
+    C->>A: POST /v1/ratelimit/check
+    A->>R: resolve(tenantId, resource)
+    R-->>A: policy
+    A->>D: evalsha(policy.algorithm, key, cost, now)
+    D-->>A: allowed, remaining, reset, retryAfter
+    A-->>C: decision + X-RateLimit-* headers
+```
+
 ## Algorithm behavior
 
 - **Fixed window**
@@ -274,6 +308,26 @@ What it does:
 
 Note: `10k` is a benchmark target, not a guarantee. Actual numbers depend on machine/network/runtime config.
 
+## Benchmark results
+
+Latest committed benchmark report: _not committed yet_.
+
+After running `npm run load`, copy your latest file from `reports/` and update this table:
+
+| Scenario | Throughput (req/s) | p50 (ms) | p95 (ms) | p99 (ms) | Blocked rate |
+|---|---:|---:|---:|---:|---:|
+| 1k target | pending | pending | pending | pending | pending |
+| 5k target | pending | pending | pending | pending | pending |
+| 10k target | pending | pending | pending | pending | pending |
+
+Suggested benchmark context to include with real numbers:
+
+- CPU model
+- RAM
+- Node version
+- Redis deployment mode (single node / cluster)
+- Policy/algorithm used during test
+
 ## Tests
 
 Unit tests:
@@ -324,3 +378,7 @@ Topics:
 - `microservices`
 - `observability`
 - `fastify`
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE`.
